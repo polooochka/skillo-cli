@@ -7,9 +7,13 @@ via a data-driven adapter registry. Hosting is **a private GitHub repo**: no ser
 no database, **$0 forever**. All computation happens on the client; the repo only
 stores and returns resources.
 
+> This repo is the **CLI**. Your skills live in your own private "library" repo
+> (scaffolded by `skillo init`) — e.g. `polooochka/skillo` in this setup.
+
 ```bash
-# consumers — one command, done:
-npx skillo setup git@github.com:YOUR-ORG/team-skills.git
+# consumers — one command, done (until published on npm, install from GitHub):
+npm i -g github:polooochka/skillo-cli
+skillo setup https://github.com/YOUR-ORG/team-skills.git
 
 # authors:
 skillo new skill pdf-report   # scaffold

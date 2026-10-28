@@ -31,7 +31,25 @@ export async function run({ flags }) {
   g.addAll(root);
   const staged = g.stagedFiles(root);
   if (!staged.length) {
-    console.log(paint.yellow('nothing to publish — library already up to date'));
+    // nothing new to commit — but local commits ahead of origin still need a push
+    let ahead = '1';
+    try {
+      const b = g.headBranch(root);
+      ahead = g.git(['rev-list', '--count', `origin/${b}..${b}`], { cwd: root });
+    } catch {
+      /* no upstream yet — push to create it */
+    }
+    if (ahead === '0') {
+      console.log(paint.yellow('nothing to publish — library already up to date'));
+      return 0;
+    }
+    try {
+      g.push(root);
+      console.log(paint.green(`✓ pushed ${ahead} already-committed change(s)`));
+    } catch (e) {
+      console.log(paint.yellow('! push rejected — write access or CODEOWNERS review missing.'));
+      throw e;
+    }
     return 0;
   }
 
