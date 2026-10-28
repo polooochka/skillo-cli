@@ -6,6 +6,7 @@ export function git(args, opts = {}) {
     return execFileSync('git', args, {
       encoding: 'utf8',
       cwd: opts.cwd,
+      env: opts.env ? { ...process.env, ...opts.env } : undefined,
       stdio: ['ignore', 'pipe', 'pipe'],
     }).trim();
   } catch (e) {

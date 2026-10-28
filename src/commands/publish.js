@@ -3,7 +3,57 @@ import { paint, SkilloError } from '../util.js';
 import { loadConfig, requireLibraryRoot } from '../config.js';
 import * as g from '../git.js';
 import { validateLibrary } from './validate.js';
-import { writeManifest } from '../manifest.js';
+import { writeManifest, manifestFresh } from '../manifest.js';
+
+/**
+ * Fetch and rebase onto origin/<branch> before pushing, so two authors who
+ * publish concurrently never see a non-fast-forward rejection.
+ *
+ * The one conflict that is mechanical rather than editorial is manifest.json
+ * (two authors each adding a skill both regenerate it against different
+ * bases). There we take origin's copy and regenerate from the merged tree,
+ * which by then contains both skills — the union is exactly what the
+ * deterministic generator would produce. Any other conflict (same skill
+ * edited on both sides) is a real editorial conflict: abort and hand it to
+ * the author.
+ */
+function syncWithOrigin(root) {
+  let b;
+  try {
+    b = g.headBranch(root);
+  } catch {
+    return;
+  }
+  g.fetchOrigin(root);
+  try {
+    g.git(['rev-parse', '--verify', '--quiet', `origin/${b}`], { cwd: root });
+  } catch {
+    return; // first push — no upstream yet
+  }
+  const behind = g.git(['rev-list', '--count', `HEAD..origin/${b}`], { cwd: root });
+  if (behind === '0') return;
+  try {
+    g.git(['rebase', `origin/${b}`], { cwd: root });
+    console.log(paint.dim(`  rebased onto origin/${b} (${behind} teammate commit(s))`));
+  } catch {
+    const conflicted = g.git(['diff', '--name-only', '--diff-filter=U'], { cwd: root })
+      .split(/\r?\n/)
+      .filter(Boolean);
+    if (conflicted.length === 1 && conflicted[0] === 'manifest.json') {
+      g.git(['checkout', `origin/${b}`, '--', 'manifest.json'], { cwd: root });
+      writeManifest(root); // merged tree already contains both sides' skills
+      g.git(['add', 'manifest.json'], { cwd: root });
+      g.git(['rebase', '--continue'], { cwd: root, env: { GIT_EDITOR: 'true' } });
+      console.log(paint.green(`  auto-merged manifest.json with ${behind} teammate commit(s)`));
+      return;
+    }
+    g.git(['rebase', '--abort'], { cwd: root });
+    throw new SkilloError(
+      `your changes conflict with teammates' edits in: ${conflicted.join(', ')} — ` +
+        'resolve with `git pull --rebase`, then run `skillo publish` again'
+    );
+  }
+}
 
 async function askMessage() {
   if (!process.stdin.isTTY) return null;
@@ -43,6 +93,13 @@ export async function run({ flags }) {
       console.log(paint.yellow('nothing to publish — library already up to date'));
       return 0;
     }
+    syncWithOrigin(root);
+    // the rebase may have changed the manifest relative to our local commits
+    if (!manifestFresh(root)) {
+      writeManifest(root);
+      g.addAll(root);
+      if (g.stagedFiles(root).length) g.commit(root, msg);
+    }
     try {
       g.push(root);
       console.log(paint.green(`✓ pushed ${ahead} already-committed change(s)`));
@@ -55,6 +112,14 @@ export async function run({ flags }) {
 
   const msg = flags.m || (await askMessage()) || 'publish skills';
   g.commit(root, msg);
+
+  syncWithOrigin(root);
+  // a rebase against teammates' commits can invalidate our manifest
+  if (!manifestFresh(root)) {
+    writeManifest(root);
+    g.addAll(root);
+    if (g.stagedFiles(root).length) g.commit(root, `${msg} (manifest refresh)`);
+  }
 
   try {
     g.push(root);

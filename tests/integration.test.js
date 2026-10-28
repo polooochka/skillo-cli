@@ -105,6 +105,63 @@ test('end-to-end: init -> publish -> setup -> sync -> prune -> collision', { tim
   assert.equal(await main(['doctor']), 0);
 });
 
+test('concurrent authors: publish rebases and auto-merges manifest.json', { timeout: 120000 }, async (t) => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'skillo-two-'));
+  const home = path.join(tmp, 'home');
+  fs.mkdirSync(home, { recursive: true });
+  process.env.SKILLO_HOME = home;
+  t.after(() => {
+    delete process.env.SKILLO_HOME;
+    try {
+      fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 3 });
+    } catch {
+      /* windows locks */
+    }
+  });
+
+  process.chdir(tmp);
+  assert.equal(await main(['init', 'lib1']), 0);
+  const lib1 = path.join(tmp, 'lib1');
+  git(['config', 'user.email', 'a@test'], { cwd: lib1 });
+  git(['config', 'user.name', 'A'], { cwd: lib1 });
+  const origin = path.join(tmp, 'origin.git');
+  git(['init', '--bare', '-b', 'main', origin]);
+  git(['remote', 'add', 'origin', origin], { cwd: lib1 });
+  process.chdir(lib1);
+  assert.equal(await main(['publish', '-m', 'initial']), 0);
+
+  // author B clones, but does NOT pull A's next change before publishing
+  const lib2 = path.join(tmp, 'lib2');
+  git(['clone', '-q', origin, lib2]);
+  git(['config', 'user.email', 'b@test'], { cwd: lib2 });
+  git(['config', 'user.name', 'B'], { cwd: lib2 });
+
+  process.chdir(lib1);
+  assert.equal(await main(['new', 'skill', 'x-one']), 0);
+  fs.writeFileSync(
+    path.join(lib1, 'skills', 'x-one', 'SKILL.md'),
+    '---\nname: x-one\ndescription: author A skill\nversion: 0.1.0\n---\nA'
+  );
+  assert.equal(await main(['publish', '-m', 'x-one']), 0);
+
+  // B edits a DIFFERENT skill and pushes without pulling -> must not fail
+  process.chdir(lib2);
+  assert.equal(await main(['new', 'skill', 'x-two']), 0);
+  fs.writeFileSync(
+    path.join(lib2, 'skills', 'x-two', 'SKILL.md'),
+    '---\nname: x-two\ndescription: author B skill\nversion: 0.1.0\n---\nB'
+  );
+  assert.equal(await main(['publish', '-m', 'x-two']), 0);
+
+  // merged tree has both skills and a manifest covering both
+  assert.equal(fs.existsSync(path.join(lib2, 'skills', 'x-one')), true, "A's skill missing after rebase");
+  assert.equal(fs.existsSync(path.join(lib2, 'skills', 'x-two')), true);
+  const man = JSON.parse(fs.readFileSync(path.join(lib2, 'manifest.json'), 'utf8'));
+  assert.ok(man.resources['skills/x-one'] && man.resources['skills/x-two'], 'manifest not a union');
+  const remoteTree = git(['ls-tree', '--name-only', 'origin/main:skills'], { cwd: lib2 });
+  assert.ok(remoteTree.includes('x-one') && remoteTree.includes('x-two'), 'remote missing one skill');
+});
+
 test('validate rejects broken frontmatter', async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'skillo-val-'));
   const bad = path.join(tmp, 'skills', 'bad');
