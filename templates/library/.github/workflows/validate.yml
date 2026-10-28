@@ -1,0 +1,17 @@
+name: validate
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # Validates every SKILL.md/AGENT.md/WORKFLOW.md and enforces that
+      # manifest.json was regenerated before the push.
+      # Once the skillo CLI is on npm, switch to: npx --yes skillo@latest validate --manifest
+      - run: npx --yes github:YOUR-USER/skillo validate --manifest

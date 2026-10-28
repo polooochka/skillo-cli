@@ -1,0 +1,15 @@
+# skillo publish governance (who may change which skills)
+# GitHub CODEOWNERS: https://docs.github.com/en/repositories/managing-a-repository/customizing-your-repository/about-code-owners
+#
+# Repo permission model (RBAC):
+#   Read   -> can consume (skillo setup / sync)
+#   Write  -> can publish (gated by the rules below)
+#   Admin  -> manages people, branches and these rules
+#
+# Default: every change requires review from the library admins:
+*                                                       @YOUR-ORG/skillo-admins
+
+# Team-scoped folders: owners of a topic may publish their own skills without
+# blocking on the central admins (changes still require one approval):
+# /skills/team-acme/                                    @YOUR-ORG/team-acme-maintainers
+# /agents/                                              @YOUR-ORG/agent-reviewers

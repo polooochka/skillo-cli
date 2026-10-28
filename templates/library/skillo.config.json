@@ -1,0 +1,4 @@
+{
+  "name": "{{LIBRARY_NAME}}",
+  "transport": "git"
+}

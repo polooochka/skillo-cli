@@ -1,0 +1,37 @@
+{
+  "name": "skillo",
+  "version": "0.1.0",
+  "description": "Provider-agnostic reusable skills/agents/workflows library. Git-backed, $0 hosting, works with Claude Code, Codex, ZCode/GLM, Kimi, Gemini and more.",
+  "type": "module",
+  "bin": {
+    "skillo": "bin/skillo.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/polooochka/skillo-cli.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin",
+    "src",
+    "templates",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "skills",
+    "agents",
+    "claude",
+    "codex",
+    "zcode",
+    "cli",
+    "agent-skills"
+  ],
+  "license": "MIT"
+}

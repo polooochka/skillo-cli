@@ -1,0 +1,62 @@
+{
+  "agents-shared": {
+    "label": "Shared agent dir (~/.agents — read by ZCode and other agents)",
+    "detect": ["dir:~/.agents/skills", "dir:~/.agents"],
+    "install": {
+      "skill": "~/.agents/skills",
+      "agent": "~/.agents/agents",
+      "workflow": "~/.agents/workflows"
+    },
+    "hooks": []
+  },
+  "zcode": {
+    "label": "ZCode (GLM)",
+    "detect": ["dir:~/.zcode", "bin:zcode"],
+    "install": {
+      "skill": "~/.zcode/skills",
+      "agent": "~/.zcode/agents",
+      "workflow": "~/.zcode/workflows"
+    },
+    "hooks": ["zcode"]
+  },
+  "claude": {
+    "label": "Claude Code",
+    "detect": ["dir:~/.claude", "bin:claude"],
+    "install": {
+      "skill": "~/.claude/skills",
+      "agent": "~/.claude/agents",
+      "workflow": "~/.claude/commands"
+    },
+    "hooks": ["claude"]
+  },
+  "codex": {
+    "label": "OpenAI Codex",
+    "detect": ["dir:~/.codex", "bin:codex"],
+    "install": {
+      "skill": "~/.codex/skills",
+      "agent": "~/.codex/agents",
+      "workflow": "~/.codex/prompts"
+    },
+    "hooks": []
+  },
+  "gemini": {
+    "label": "Gemini CLI",
+    "detect": ["dir:~/.gemini", "bin:gemini"],
+    "install": {
+      "skill": "~/.gemini/skills",
+      "agent": "~/.gemini/agents",
+      "workflow": "~/.gemini/workflows"
+    },
+    "hooks": []
+  },
+  "kimi": {
+    "label": "Kimi Code",
+    "detect": ["dir:~/.kimi", "bin:kimi"],
+    "install": {
+      "skill": "~/.kimi/skills",
+      "agent": "~/.kimi/agents",
+      "workflow": "~/.kimi/workflows"
+    },
+    "hooks": []
+  }
+}
